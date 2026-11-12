@@ -1,0 +1,7 @@
+citHeader("To cite PGLasso, cite the associated manuscript:")
+citEntry(entry = "Misc",
+  title = "Propagation-guided lasso for sparse intervention in complex networks",
+  author = personList(as.person("Tiange Shi"), as.person("Han Yu"),
+                      as.person("Rachael Hageman Blair")),
+  year = "2026",
+  note = "Manuscript under revision")

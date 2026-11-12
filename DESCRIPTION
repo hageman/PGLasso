@@ -1,0 +1,17 @@
+Package: PGLasso
+Type: Package
+Title: Propagation-Guided Lasso for Sparse Network Intervention
+Version: 0.1.0
+Authors@R: person("PGLasso", "Research Team", role = c("aut", "cre"), email = "hageman@buffalo.edu")
+Description: Estimates sparse interventions that move a network from an initial
+    state toward a target state using PRINCE network propagation and constrained
+    lasso regression. Includes a reconstructed NORSP-style forward-selection
+    comparison and reproducible simulated-network demonstrations. The functions
+    operate on network adjacency matrices and do not require nonlinear kinetic
+    models.
+License: MIT + file LICENSE
+Encoding: UTF-8
+Depends: R (>= 4.1.0)
+Imports: glmnet
+Suggests: testthat (>= 3.0.0)
+Config/testthat/edition: 3
