@@ -1,84 +1,132 @@
-# PGLasso — propagation-guided sparse network intervention
+<div align="center">
 
-**Research R package (v0.1.0)**
+# PGLasso
 
-PGLasso estimates a sparse vector of interventions that moves a network from an initial state toward a specified target. It uses a PRINCE-derived network sensitivity matrix and constrained lasso. A separate **NORSP-style forward-selection** function provides an approximate comparison method.
+### Propagation-guided lasso for sparse intervention in complex networks
 
-> **Publication:** Shi, T., Yu, H., and Hageman Blair, R. *Propagation-guided lasso for sparse intervention in complex networks*. Manuscript under revision (2026). Add a DOI/journal citation when available.
+**An open-source R package for identifying small, interpretable sets of network interventions.**
+
+[Project website](https://hageman.github.io/PGLasso/) · [Installation](#installation) · [Quick start](#quick-start) · [Methods](#how-it-works) · [Citation](#citation)
+
+</div>
+
+---
+
+## Overview
+
+How can we identify a small number of perturbations that move a complex network from its initial state toward a desired target, when its full dynamics are unknown?
+
+**PGLasso** combines network propagation with sparse regression. Starting from a network adjacency matrix and initial and target node states, it constructs a propagation-derived sensitivity matrix and uses constrained lasso regression to identify candidate intervention nodes and estimate their perturbation magnitudes.
+
+The package is designed for research on biological and other complex networks in which a static network representation is available but a complete mechanistic model may not be.
+
+### Highlights
+
+- **Sparse intervention selection:** identify a manageable set of candidate nodes and estimate how strongly to perturb them.
+- **Network-based sensitivity:** use PRINCE propagation to capture direct and indirect effects encoded by network topology.
+- **Multiple network types:** work with undirected, directed, and directed signed adjacency matrices.
+- **Feasibility-aware fitting:** support nonnegative post-intervention states through constrained regression.
+- **Transparent comparison:** compare PGLasso with a separate reconstructed **NORSP-style forward-selection** baseline.
+- **Reproducible demonstrations:** generate synthetic networks and evaluate support recovery and graph-based target error.
 
 ## Installation
 
-Install R (version 4.1 or later), and then:
+PGLasso requires **R 4.1 or later**. Install the current development version from GitHub:
 
 ```r
-install.packages("glmnet")
 install.packages("remotes")
 remotes::install_github("hageman/PGLasso")
+library(PGLasso)
 ```
 
-Or download the repository and install from the extracted package directory:
+The package uses `glmnet`, which will be installed as a dependency if needed. PGLasso is currently distributed through GitHub; it is **not yet available on CRAN**.
 
-```r
-remotes::install_local("path/to/PGLasso")
-```
+## Quick start
 
-## Five-minute example
+This example generates a **50-node directed signed network** with three true intervention nodes and compares PGLasso with forward selection.
 
 ```r
 library(PGLasso)
+
+# Simulate a network, target state, and three true perturbations
 sim <- pglasso_simulate(n = 50, n_true = 3, seed = 2026)
+
+# Estimate sparse interventions with both methods
 results <- pglasso_compare(sim, max_nodes = 10)
+
+# Compare exact support recovery, precision, recall, F1, and target error
 print(results$summary)
-results$pglasso$selected_names
-results$norsp_forward$selected_names
+
+# See the selected intervention nodes
+results$pglasso$selected
+results$norsp_forward$selected
 ```
 
-See [`inst/examples/simulation_example.R`](inst/examples/simulation_example.R) for the longer simulation, including a comparison plot.
+For this particular seed, both methods recover all three true intervention nodes. The example illustrates how to run the software; it is **not** a reproduction of the manuscript's aggregate simulation results.
 
-## Function reference
+A longer example, including a visualization, is available in [`inst/examples/simulation_example.R`](inst/examples/simulation_example.R).
+
+## How it works
+
+PGLasso begins with an adjacency matrix **G**, an initial state **z₀**, a target state **zₜ**, and a propagation parameter **α**. PRINCE propagation produces a sensitivity matrix **S**:
+
+```text
+S = (1 − α) (I − α G′)⁻¹
+```
+
+where **G′** is the degree-normalized adjacency matrix. The change from initial to target state is modeled as **zₜ − z₀ ≈ SΔ**. Lasso estimates a sparse perturbation vector **Δ**, optionally constrained so that post-intervention node states remain nonnegative.
+
+The resulting coefficients describe **which nodes to perturb and by how much**. A solution is selected along the regularization path using an elbow criterion.
+
+PGLasso does **not** infer network edges or estimate a time-dependent control signal. Its predicted response is based on the network-propagation approximation; biological validation in a nonlinear dynamical system requires a separate simulator.
+
+## Main functions
 
 | Function | Purpose |
-|---|---|
-| `pglasso_sensitivity(G, alpha)` | PRINCE normalized-adjacency sensitivity matrix |
-| `pglasso_fit(S, z0, zT, ...)` | Constrained lasso and elbow-based selection |
-| `norsp_forward(S, z0, zT, ...)` | Reconstructed NORSP-style forward selection |
-| `pglasso_simulate(...)` | Reproducible directed signed network + target |
-| `pglasso_compare(sim, ...)` | Support recovery and error-ratio comparison |
-| `pglasso_example()` | Small example runnable from the R console |
+| --- | --- |
+| `pglasso_sensitivity()` | Compute the PRINCE-derived sensitivity matrix from a network. |
+| `pglasso_fit()` | Estimate a sparse intervention vector using constrained lasso. |
+| `norsp_forward()` | Run the reconstructed NORSP-style forward-selection comparator. |
+| `pglasso_simulate()` | Generate a reproducible synthetic directed signed network experiment. |
+| `pglasso_compare()` | Compare intervention recovery and graph-based target approximation. |
+| `pglasso_example()` | Run a smaller built-in demonstration. |
 
-### Input convention
+**Network convention:** `G[i, j]` represents an edge directed **from node i to node j**. For signed networks, `+1` represents activation and `-1` inhibition.
 
-`G[i,j]` represents an edge **from** node `i` **to** node `j`. Signed edges can be -1 or +1. For BioModels Jacobians, the original analysis formed `G = t(sign(J))` and removed self-loops. The sensitivity matrix is:
+### About the NORSP comparison
 
-`S = (1-alpha) * solve(I - alpha * D_out^(-1/2) * G * D_in^(-1/2))`.
+`norsp_forward()` implements a **reconstructed NORSP-style greedy forward-selection baseline** for comparison. It is **not** the original published NORSP software or a verified exact reproduction of that implementation. Please retain this distinction when citing or reporting results.
 
-The intervention satisfies `z0 + Delta >= 0` when `nonnegative=TRUE`. `glmnet` uses a scaled quadratic objective, so its lambda values should **not** be compared numerically with lambda values from an unscaled optimization statement. The outputs include the graph-estimated target and graph error ratio; testing an intervention in a nonlinear biochemical model requires a separate dynamic simulator.
+## Reproducibility and scope
 
-### Elbow selection and the paper
+The repository includes the standalone R package, automated tests, and illustrative synthetic-network examples. The original study additionally analyzed **82 mechanistic models from BioModels** using MATLAB/SBML and R scripts. Those original MATLAB pipelines and full experimental outputs are **not bundled in this repository**. BioModels accession numbers are reported in the manuscript's supplementary materials.
 
-The package provides `selector="geometric"` for the simulated-network benchmark and `selector="derivative"` for an approximation of the original BioModels derivative-based heuristic. These are **different rules**; be explicit about which is used in reports. The simulation example is illustrative and **not a reproduction of all published experiments or summary figures**.
+See [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md) for methodological details and distinctions between the illustrative examples and the reported experiments.
 
-### What is—and is not—NORSP here
+The R package has been tested on macOS with **11 passing automated tests** and successfully installed directly from GitHub. A single timestamp-verification note remained during the local R package check.
 
-`norsp_forward()` is a **reconstructed NORSP-style greedy forward-selection baseline**, using the same network sensitivity matrix and a geometric elbow to choose the intervention set size. It is **not an exact implementation of the original NORSP publication/software**. Neither function estimates edges or solves an optimal-control problem over time.
+## Citation
 
-### Reproducing the BioModels experiments
+If you use PGLasso in research, please cite the associated manuscript:
 
-The original research archive includes MATLAB/SBML pipelines and R analysis scripts for 82 mechanistic BioModels. This lightweight R package does **not** bundle those large source data, MATLAB dependencies, or model outputs. To reproduce the paper's BioModels numerical results, the original pipeline/data must be deposited separately and the precise preprocessing and tuning configuration documented. See [`REPRODUCIBILITY.md`](REPRODUCIBILITY.md).
+> Shi, T., Yu, H., and Hageman Blair, R. (2026). **Propagation-guided lasso for sparse intervention in complex networks.** *Manuscript submitted.*
 
-## Development and testing
+**BibTeX** (no journal specified):
 
-The GitHub Actions workflow runs `R CMD check` and `testthat` tests on commits and pull requests. Run locally with:
-
-```r
-install.packages("testthat")
-testthat::test_local("PGLasso")
+```bibtex
+@unpublished{shi2026pglasso,
+  author = {Shi, Tiange and Yu, Han and Hageman Blair, Rachael},
+  title  = {Propagation-guided lasso for sparse intervention in complex networks},
+  year   = {2026},
+  note   = {Manuscript submitted},
+  url    = {https://github.com/hageman/PGLasso}
+}
 ```
 
-## License
+From R, you can also access the package citation with `citation("PGLasso")` after installation.
 
-Released under the [MIT License](LICENSE).
+## License and contact
 
-## Contact
+PGLasso is open-source software released under the [MIT License](LICENSE.md).
 
-For research correspondence: **hageman@buffalo.edu**.
+**Research correspondence:** Rachael Hageman Blair · [hageman@buffalo.edu](mailto:hageman@buffalo.edu)

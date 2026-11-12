@@ -1,32 +1,54 @@
 # PGLasso
 
-## Propagation-guided lasso for sparse intervention in complex networks
+### Propagation-guided lasso for sparse intervention in complex networks
 
-PGLasso uses network propagation and penalized regression to identify a small set of candidate interventions that moves a biological network from an initial state toward a target state. It requires an adjacency matrix, not a fully specified dynamic system.
+**Open-source R software for selecting sparse interventions in complex networks.**
 
-**Core functions:** `pglasso_sensitivity()`, `pglasso_fit()`, and `norsp_forward()`.
+[GitHub repository](https://github.com/hageman/PGLasso) · [Read the README](https://github.com/hageman/PGLasso#readme) · [Simulation example](https://github.com/hageman/PGLasso/blob/main/inst/examples/simulation_example.R)
 
-### Installation
+---
+
+## What is PGLasso?
+
+PGLasso identifies candidate network nodes to perturb—and estimates their perturbation magnitudes—to move a network from an observed initial state toward a specified target. The method combines a **PRINCE network-propagation sensitivity matrix** with **constrained lasso regression**, without requiring a fully specified nonlinear dynamic model.
+
+### What the software includes
+
+- **PGLasso estimation:** `pglasso_sensitivity()` and `pglasso_fit()`
+- **NORSP-style forward selection:** `norsp_forward()`; a reconstructed comparator, not the original NORSP implementation
+- **Synthetic-network demonstrations:** `pglasso_simulate()` and `pglasso_compare()`
+- **Installation instructions, function documentation, and automated tests**
+
+## Install from GitHub
 
 ```r
-install.packages("glmnet")
 install.packages("remotes")
-remotes::install_github("YOUR-GITHUB-USERNAME/PGLasso")
+remotes::install_github("hageman/PGLasso")
+library(PGLasso)
 ```
 
-### Example
+## Try an example
 
 ```r
-library(PGLasso)
 sim <- pglasso_simulate(n = 50, n_true = 3, seed = 2026)
-result <- pglasso_compare(sim)
-result$summary
+results <- pglasso_compare(sim, max_nodes = 10)
+print(results$summary)
 ```
 
-The comparison function labeled `norsp_forward()` is a reconstructed **NORSP-style** forward-selection baseline, not the original NORSP implementation. The simulation is an illustrative example, not a regeneration of the paper's full benchmark.
+This example is illustrative and does not reproduce all numerical results in the associated manuscript. The full MATLAB/SBML BioModels pipeline is not included in the R package; see [reproducibility notes](https://github.com/hageman/PGLasso/blob/main/REPRODUCIBILITY.md).
 
-[Read the package README](../README.md) | [Reproducibility notes](../REPRODUCIBILITY.md)
+## Cite PGLasso
 
-**Manuscript:** Shi, T., Yu, H., and Hageman Blair, R. *Propagation-guided lasso for sparse intervention in complex networks*, under revision (2026).
+Shi, T., Yu, H., and Hageman Blair, R. (2026). *Propagation-guided lasso for sparse intervention in complex networks.* **Manuscript submitted.**
 
-**Contact:** hageman@buffalo.edu
+```bibtex
+@unpublished{shi2026pglasso,
+  author = {Shi, Tiange and Yu, Han and Hageman Blair, Rachael},
+  title  = {Propagation-guided lasso for sparse intervention in complex networks},
+  year   = {2026},
+  note   = {Manuscript submitted},
+  url    = {https://github.com/hageman/PGLasso}
+}
+```
+
+**License:** [MIT](https://github.com/hageman/PGLasso/blob/main/LICENSE.md) · **Contact:** [hageman@buffalo.edu](mailto:hageman@buffalo.edu)
